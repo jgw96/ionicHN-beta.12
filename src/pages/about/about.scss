@@ -1,0 +1,13 @@
+.about {
+    ion-label {
+        white-space: normal;
+    }
+
+    #shareButton {
+        float: right;
+    }
+
+    ion-item-sliding {
+        contain: paint layout;
+    }
+}
