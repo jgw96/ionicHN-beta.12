@@ -1,16 +1,17 @@
 import { Component } from '@angular/core';
-import { NavController, LoadingController, AlertController } from 'ionic-angular';
+import { NavController, LoadingController, AlertController, ToastController } from 'ionic-angular';
 import { StoriesService } from '../../providers/stories';
 import { CommentsPage } from '../../pages/comments/comments';
 export class ShowStoriesPage {
-    constructor(nav, storiesService, loadCtrl, alertCtrl) {
+    constructor(nav, storiesService, loadCtrl, alertCtrl, toastCtrl) {
         this.nav = nav;
         this.storiesService = storiesService;
         this.loadCtrl = loadCtrl;
         this.alertCtrl = alertCtrl;
+        this.toastCtrl = toastCtrl;
         this.stories = [];
     }
-    ionViewDidEnter() {
+    ionViewDidLoad() {
         let loading = this.loadCtrl.create({
             content: 'Getting Stories...',
         });
@@ -19,15 +20,20 @@ export class ShowStoriesPage {
                 .subscribe((data) => {
                 this.storyIDs = data;
                 this.previousIndex = this.storyIDs.length - 20;
+                console.log(this.previousIndex);
                 for (let i = 0; i < 20; i++) {
-                    let id = data[i];
-                    this.storiesService.getStory(data[i])
-                        .subscribe((data) => {
-                        this.stories.push({ data: data, id: id });
+                    if (i === 19) {
                         loading.dismiss();
-                        this.storiesRetreived = this.stories;
-                        sessionStorage.setItem('loaded', 'true');
-                    });
+                    }
+                    else {
+                        let id = data[i];
+                        this.storiesService.getStory(data[i])
+                            .subscribe((data) => {
+                            this.stories.push({ data: data, id: id });
+                            this.storiesRetreived = this.stories;
+                            sessionStorage.setItem('loaded', 'true');
+                        });
+                    }
                 }
             }, (error) => {
                 console.log(error);
@@ -62,18 +68,33 @@ export class ShowStoriesPage {
         window.open(url);
     }
     doInfinite(infiniteScroll) {
+        console.log(this.previousIndex);
         let newIndex = this.previousIndex - 20;
-        for (let i = this.previousIndex; i > newIndex; i--) {
-            let id = this.storyIDs[i];
-            this.storiesService.getStory(this.storyIDs[i])
-                .subscribe((data) => {
-                this.stories.push({ data: data, id: id });
-            }, (error) => {
-                console.log(error);
-            });
+        if (newIndex > 0) {
+            for (let i = this.previousIndex; i > newIndex; i--) {
+                if (i === newIndex + 1) {
+                    console.log(newIndex);
+                    infiniteScroll.complete();
+                    this.previousIndex = newIndex;
+                }
+                else {
+                    let id = this.storyIDs[i];
+                    this.storiesService.getStory(this.storyIDs[i])
+                        .subscribe((data) => {
+                        this.stories.push({ data: data, id: id });
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            }
         }
-        infiniteScroll.complete();
-        this.previousIndex = newIndex;
+        else {
+            let toast = this.toastCtrl.create({
+                message: 'No more stories to load',
+                duration: 3000
+            });
+            toast.present();
+        }
     }
     share(url) {
         window.open(`http://twitter.com/share?text=Check out this cool article I found on ionicHN!&url=${url}&hashtags=ionicHN`);
@@ -98,4 +119,5 @@ ShowStoriesPage.ctorParameters = [
     { type: StoriesService, },
     { type: LoadingController, },
     { type: AlertController, },
+    { type: ToastController, },
 ];

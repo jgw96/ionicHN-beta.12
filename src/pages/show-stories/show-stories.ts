@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { NavController, LoadingController, AlertController} from 'ionic-angular';
+import { NavController, LoadingController, AlertController, ToastController } from 'ionic-angular';
 import { SocialSharing } from 'ionic-native';
 
 import { StoriesService } from '../../providers/stories';
@@ -26,12 +26,13 @@ export class ShowStoriesPage {
     private nav: NavController,
     private storiesService: StoriesService,
     private loadCtrl: LoadingController,
-    private alertCtrl: AlertController
-    ) {
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
+  ) {
     this.stories = [];
   }
 
-  ionViewDidEnter() {
+  ionViewDidLoad() {
     let loading = this.loadCtrl.create({
       content: 'Getting Stories...',
     });
@@ -42,17 +43,21 @@ export class ShowStoriesPage {
         (data: any) => {
           this.storyIDs = data;
           this.previousIndex = this.storyIDs.length - 20;
+          console.log(this.previousIndex);
           for (let i = 0; i < 20; i++) {
-            let id = data[i]
-            this.storiesService.getStory(data[i])
-              .subscribe(
-              (data: any) => {
-                this.stories.push({ data: data, id: id });
-                loading.dismiss();
-                this.storiesRetreived = this.stories;
-                sessionStorage.setItem('loaded', 'true');
-              }
-              )
+            if (i === 19) {
+              loading.dismiss();
+            } else {
+              let id = data[i]
+              this.storiesService.getStory(data[i])
+                .subscribe(
+                (data: any) => {
+                  this.stories.push({ data: data, id: id });
+                  this.storiesRetreived = this.stories;
+                  sessionStorage.setItem('loaded', 'true');
+                }
+                )
+            }
           }
         },
         (error: Error) => {
@@ -98,21 +103,34 @@ export class ShowStoriesPage {
   }
 
   doInfinite(infiniteScroll: any) {
+    console.log(this.previousIndex);
     let newIndex = this.previousIndex - 20;
-    for (let i = this.previousIndex; i > newIndex; i--) {
-      let id = this.storyIDs[i];
-      this.storiesService.getStory(this.storyIDs[i])
-        .subscribe(
-        (data: any) => {
-          this.stories.push({ data: data, id: id });
-        },
-        (error: Error) => {
-          console.log(error);
+    if (newIndex > 0) {
+      for (let i = this.previousIndex; i > newIndex; i--) {
+        if (i === newIndex + 1) {
+          console.log(newIndex);
+          infiniteScroll.complete();
+          this.previousIndex = newIndex;
+        } else {
+          let id = this.storyIDs[i];
+          this.storiesService.getStory(this.storyIDs[i])
+            .subscribe(
+            (data: any) => {
+              this.stories.push({ data: data, id: id });
+            },
+            (error: Error) => {
+              console.log(error);
+            }
+            )
         }
-        )
+      }
+    } else {
+      let toast = this.toastCtrl.create({
+        message: 'No more stories to load',
+        duration: 3000
+      });
+      toast.present();
     }
-    infiniteScroll.complete();
-    this.previousIndex = newIndex;
   }
 
   public share(url: string) {

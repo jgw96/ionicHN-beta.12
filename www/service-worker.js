@@ -1,4 +1,4 @@
-var CACHE_VERSION = 1;
+var CACHE_VERSION = 2;
 var cache_name = "main_cache";
 
 self.addEventListener('install', function (event) {
@@ -45,7 +45,7 @@ self.addEventListener('fetch', function (event) {
 
             return response;
           }
-        ).catch(function(e) {
+        ).catch(function (e) {
           console.log(e);
         })
       }).catch(function (e) {

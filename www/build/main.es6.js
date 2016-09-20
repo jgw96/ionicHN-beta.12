@@ -46372,7 +46372,7 @@ class CommentsPage {
         this.storiesService = storiesService;
         this.comments = [];
     }
-    ionViewDidEnter() {
+    ionViewDidLoad() {
         let data = this.navParams.get('data');
         data.forEach((id) => {
             this.storiesService.getStory(id)
@@ -46397,13 +46397,14 @@ CommentsPage.ctorParameters = [
 ];
 
 class HomePage {
-    constructor(navCtrl, storiesService, loadCtrl) {
+    constructor(navCtrl, storiesService, loadCtrl, toastCtrl) {
         this.navCtrl = navCtrl;
         this.storiesService = storiesService;
         this.loadCtrl = loadCtrl;
+        this.toastCtrl = toastCtrl;
         this.stories = [];
     }
-    ionViewDidEnter() {
+    ionViewDidLoad() {
         let loading = this.loadCtrl.create({
             content: 'Getting Stories...'
         });
@@ -46413,17 +46414,21 @@ class HomePage {
                 this.storyIDs = data;
                 this.previousIndex = this.storyIDs.length - 20;
                 for (let i = 0; i < 20; i++) {
-                    let id = data[i];
-                    this.storiesService.getStory(data[i])
-                        .subscribe((data) => {
-                        this.stories.push({ data: data, id: id });
-                        this.storiesRetreived = this.stories;
-                        sessionStorage.setItem('loaded', 'true');
-                    }, error => {
+                    if (i === 19) {
+                        console.log('should dismiss');
                         loading.dismiss();
-                    }, () => {
-                        loading.dismiss();
-                    });
+                    }
+                    else {
+                        let id = data[i];
+                        this.storiesService.getStory(data[i])
+                            .subscribe((data) => {
+                            this.stories.push({ data: data, id: id });
+                            this.storiesRetreived = this.stories;
+                            sessionStorage.setItem('loaded', 'true');
+                        }, error => {
+                            loading.dismiss();
+                        });
+                    }
                 }
             }, (error) => {
                 console.log(error);
@@ -46459,17 +46464,31 @@ class HomePage {
     }
     doInfinite(infiniteScroll) {
         let newIndex = this.previousIndex - 20;
-        for (let i = this.previousIndex; i > newIndex; i--) {
-            let id = this.storyIDs[i];
-            this.storiesService.getStory(this.storyIDs[i])
-                .subscribe((data) => {
-                this.stories.push({ data: data, id: id });
-            }, (error) => {
-                console.log(error);
-            });
+        if (newIndex > 0) {
+            for (let i = this.previousIndex; i > newIndex; i--) {
+                if (i === newIndex + 1) {
+                    console.log(newIndex);
+                    infiniteScroll.complete();
+                    this.previousIndex = newIndex;
+                }
+                else {
+                    let id = this.storyIDs[i];
+                    this.storiesService.getStory(this.storyIDs[i])
+                        .subscribe((data) => {
+                        this.stories.push({ data: data, id: id });
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            }
         }
-        infiniteScroll.complete();
-        this.previousIndex = newIndex;
+        else {
+            let toast = this.toastCtrl.create({
+                message: 'No more stories to load',
+                duration: 3000
+            });
+            toast.present();
+        }
     }
     share(url) {
         window.open(`http://twitter.com/share?text=Check out this cool article I found on ionicHN!&url=${url}&hashtags=ionicHN`);
@@ -46493,17 +46512,19 @@ HomePage.ctorParameters = [
     { type: NavController, },
     { type: StoriesService, },
     { type: LoadingController, },
+    { type: ToastController, },
 ];
 
 class ShowStoriesPage {
-    constructor(nav, storiesService, loadCtrl, alertCtrl) {
+    constructor(nav, storiesService, loadCtrl, alertCtrl, toastCtrl) {
         this.nav = nav;
         this.storiesService = storiesService;
         this.loadCtrl = loadCtrl;
         this.alertCtrl = alertCtrl;
+        this.toastCtrl = toastCtrl;
         this.stories = [];
     }
-    ionViewDidEnter() {
+    ionViewDidLoad() {
         let loading = this.loadCtrl.create({
             content: 'Getting Stories...',
         });
@@ -46512,15 +46533,20 @@ class ShowStoriesPage {
                 .subscribe((data) => {
                 this.storyIDs = data;
                 this.previousIndex = this.storyIDs.length - 20;
+                console.log(this.previousIndex);
                 for (let i = 0; i < 20; i++) {
-                    let id = data[i];
-                    this.storiesService.getStory(data[i])
-                        .subscribe((data) => {
-                        this.stories.push({ data: data, id: id });
+                    if (i === 19) {
                         loading.dismiss();
-                        this.storiesRetreived = this.stories;
-                        sessionStorage.setItem('loaded', 'true');
-                    });
+                    }
+                    else {
+                        let id = data[i];
+                        this.storiesService.getStory(data[i])
+                            .subscribe((data) => {
+                            this.stories.push({ data: data, id: id });
+                            this.storiesRetreived = this.stories;
+                            sessionStorage.setItem('loaded', 'true');
+                        });
+                    }
                 }
             }, (error) => {
                 console.log(error);
@@ -46555,18 +46581,33 @@ class ShowStoriesPage {
         window.open(url);
     }
     doInfinite(infiniteScroll) {
+        console.log(this.previousIndex);
         let newIndex = this.previousIndex - 20;
-        for (let i = this.previousIndex; i > newIndex; i--) {
-            let id = this.storyIDs[i];
-            this.storiesService.getStory(this.storyIDs[i])
-                .subscribe((data) => {
-                this.stories.push({ data: data, id: id });
-            }, (error) => {
-                console.log(error);
-            });
+        if (newIndex > 0) {
+            for (let i = this.previousIndex; i > newIndex; i--) {
+                if (i === newIndex + 1) {
+                    console.log(newIndex);
+                    infiniteScroll.complete();
+                    this.previousIndex = newIndex;
+                }
+                else {
+                    let id = this.storyIDs[i];
+                    this.storiesService.getStory(this.storyIDs[i])
+                        .subscribe((data) => {
+                        this.stories.push({ data: data, id: id });
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            }
         }
-        infiniteScroll.complete();
-        this.previousIndex = newIndex;
+        else {
+            let toast = this.toastCtrl.create({
+                message: 'No more stories to load',
+                duration: 3000
+            });
+            toast.present();
+        }
     }
     share(url) {
         window.open(`http://twitter.com/share?text=Check out this cool article I found on ionicHN!&url=${url}&hashtags=ionicHN`);
@@ -46591,6 +46632,7 @@ ShowStoriesPage.ctorParameters = [
     { type: StoriesService, },
     { type: LoadingController, },
     { type: AlertController, },
+    { type: ToastController, },
 ];
 
 class AboutPage {
@@ -46600,7 +46642,7 @@ class AboutPage {
         this.loadCtrl = loadCtrl;
         this.jobs = [];
     }
-    ionViewDidEnter() {
+    ionViewDidLoad() {
         let loading = this.loadCtrl.create({
             content: 'Getting Jobs...'
         });
@@ -46610,9 +46652,7 @@ class AboutPage {
                 data.forEach((id) => {
                     this.storiesService.getStory(id)
                         .subscribe((data) => {
-                        console.log(data);
                         this.jobs.push(data);
-                        loading.dismiss();
                     }, (err) => {
                         console.log(err);
                     });
@@ -46620,6 +46660,9 @@ class AboutPage {
             }, (err) => {
                 console.log(err);
             });
+            setTimeout(() => {
+                loading.dismiss();
+            }, 2000);
         });
     }
     goTo(site) {
@@ -51412,7 +51455,7 @@ class _View_ShowStoriesPage_Host0 extends AppView {
         this._el_0 = this.selectOrCreateHostElement('ng-component', rootSelector, null);
         this._appEl_0 = new AppElement(0, null, this, this._el_0);
         var compView_0 = viewFactory_ShowStoriesPage0(this.viewUtils, this.injector(0), this._appEl_0);
-        this._ShowStoriesPage_0_4 = new ShowStoriesPage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(AlertController));
+        this._ShowStoriesPage_0_4 = new ShowStoriesPage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(AlertController), this.parentInjector.get(ToastController));
         this._appEl_0.initComponent(this._ShowStoriesPage_0_4, [], compView_0);
         compView_0.create(this._ShowStoriesPage_0_4, this.projectableNodes, null);
         this.init([].concat([this._el_0]), [this._el_0], [], []);
@@ -52372,7 +52415,7 @@ class _View_HomePage_Host0 extends AppView {
         this._el_0 = this.selectOrCreateHostElement('ng-component', rootSelector, null);
         this._appEl_0 = new AppElement(0, null, this, this._el_0);
         var compView_0 = viewFactory_HomePage0(this.viewUtils, this.injector(0), this._appEl_0);
-        this._HomePage_0_4 = new HomePage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController));
+        this._HomePage_0_4 = new HomePage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(ToastController));
         this._appEl_0.initComponent(this._HomePage_0_4, [], compView_0);
         compView_0.create(this._HomePage_0_4, this.projectableNodes, null);
         this.init([].concat([this._el_0]), [this._el_0], [], []);
@@ -52773,7 +52816,7 @@ class _View_HomePage1 extends AppView {
         this.renderer.setElementAttribute(this._el_23, 'name', 'share');
         this.renderer.setElementAttribute(this._el_23, 'role', 'img');
         this._Icon_23_3 = new Icon(this.parent.parentInjector.get(Config), new ElementRef(this._el_23), this.renderer);
-        this._text_24 = this.renderer.createText(null, '\n      ', null);
+        this._text_24 = this.renderer.createText(null, '\n        Share\n      ', null);
         compView_21.create(this._Button_21_4, [[].concat([
                 this._text_22,
                 this._el_23,

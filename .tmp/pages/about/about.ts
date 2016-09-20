@@ -17,7 +17,7 @@ export class AboutPage {
     this.jobs = [];
   }
 
-  ionViewDidEnter() {
+  ionViewDidLoad() {
     let loading = this.loadCtrl.create({
       content: 'Getting Jobs...'
     });
@@ -29,9 +29,7 @@ export class AboutPage {
             this.storiesService.getStory(id)
               .subscribe(
               (data: any) => {
-                console.log(data);
                 this.jobs.push(data);
-                loading.dismiss();
               },
               (err: Error) => {
                 console.log(err);
@@ -43,6 +41,10 @@ export class AboutPage {
           console.log(err);
         }
         );
+
+        setTimeout(() => {
+          loading.dismiss();
+        }, 2000)
     });
   }
 

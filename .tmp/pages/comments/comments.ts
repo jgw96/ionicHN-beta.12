@@ -23,7 +23,7 @@ export class CommentsPage {
     this.comments = [];
   }
 
-  ionViewDidEnter() {
+  ionViewDidLoad() {
     let data = this.navParams.get('data');
     data.forEach((id: any) => {
       this.storiesService.getStory(id)

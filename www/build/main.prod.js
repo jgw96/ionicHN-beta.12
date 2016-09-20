@@ -46651,7 +46651,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             this.storiesService = storiesService;
             this.comments = [];
         }
-        CommentsPage.prototype.ionViewDidEnter = function () {
+        CommentsPage.prototype.ionViewDidLoad = function () {
             var _this = this;
             var data = this.navParams.get('data');
             data.forEach(function (id) {
@@ -46677,13 +46677,14 @@ var __extends = (this && this.__extends) || function (d, b) {
         { type: StoriesService, },
     ];
     var HomePage = (function () {
-        function HomePage(navCtrl, storiesService, loadCtrl) {
+        function HomePage(navCtrl, storiesService, loadCtrl, toastCtrl) {
             this.navCtrl = navCtrl;
             this.storiesService = storiesService;
             this.loadCtrl = loadCtrl;
+            this.toastCtrl = toastCtrl;
             this.stories = [];
         }
-        HomePage.prototype.ionViewDidEnter = function () {
+        HomePage.prototype.ionViewDidLoad = function () {
             var _this = this;
             var loading = this.loadCtrl.create({
                 content: 'Getting Stories...'
@@ -46694,17 +46695,21 @@ var __extends = (this && this.__extends) || function (d, b) {
                     _this.storyIDs = data;
                     _this.previousIndex = _this.storyIDs.length - 20;
                     var _loop_1 = function(i_6) {
-                        var id = data[i_6];
-                        _this.storiesService.getStory(data[i_6])
-                            .subscribe(function (data) {
-                            _this.stories.push({ data: data, id: id });
-                            _this.storiesRetreived = _this.stories;
-                            sessionStorage.setItem('loaded', 'true');
-                        }, function (error) {
+                        if (i_6 === 19) {
+                            console.log('should dismiss');
                             loading.dismiss();
-                        }, function () {
-                            loading.dismiss();
-                        });
+                        }
+                        else {
+                            var id_1 = data[i_6];
+                            _this.storiesService.getStory(data[i_6])
+                                .subscribe(function (data) {
+                                _this.stories.push({ data: data, id: id_1 });
+                                _this.storiesRetreived = _this.stories;
+                                sessionStorage.setItem('loaded', 'true');
+                            }, function (error) {
+                                loading.dismiss();
+                            });
+                        }
                     };
                     for (var i_6 = 0; i_6 < 20; i_6++) {
                         _loop_1(i_6);
@@ -46748,21 +46753,35 @@ var __extends = (this && this.__extends) || function (d, b) {
         HomePage.prototype.doInfinite = function (infiniteScroll) {
             var _this = this;
             var newIndex = this.previousIndex - 20;
-            var _loop_3 = function(i_8) {
-                var id = this_1.storyIDs[i_8];
-                this_1.storiesService.getStory(this_1.storyIDs[i_8])
-                    .subscribe(function (data) {
-                    _this.stories.push({ data: data, id: id });
-                }, function (error) {
-                    console.log(error);
-                });
-            };
-            var this_1 = this;
-            for (var i_8 = this.previousIndex; i_8 > newIndex; i_8--) {
-                _loop_3(i_8);
+            if (newIndex > 0) {
+                var _loop_3 = function(i_8) {
+                    if (i_8 === newIndex + 1) {
+                        console.log(newIndex);
+                        infiniteScroll.complete();
+                        this_1.previousIndex = newIndex;
+                    }
+                    else {
+                        var id_2 = this_1.storyIDs[i_8];
+                        this_1.storiesService.getStory(this_1.storyIDs[i_8])
+                            .subscribe(function (data) {
+                            _this.stories.push({ data: data, id: id_2 });
+                        }, function (error) {
+                            console.log(error);
+                        });
+                    }
+                };
+                var this_1 = this;
+                for (var i_8 = this.previousIndex; i_8 > newIndex; i_8--) {
+                    _loop_3(i_8);
+                }
             }
-            infiniteScroll.complete();
-            this.previousIndex = newIndex;
+            else {
+                var toast = this.toastCtrl.create({
+                    message: 'No more stories to load',
+                    duration: 3000
+                });
+                toast.present();
+            }
         };
         HomePage.prototype.share = function (url) {
             window.open("http://twitter.com/share?text=Check out this cool article I found on ionicHN!&url=" + url + "&hashtags=ionicHN");
@@ -46787,16 +46806,18 @@ var __extends = (this && this.__extends) || function (d, b) {
         { type: NavController, },
         { type: StoriesService, },
         { type: LoadingController, },
+        { type: ToastController, },
     ];
     var ShowStoriesPage = (function () {
-        function ShowStoriesPage(nav, storiesService, loadCtrl, alertCtrl) {
+        function ShowStoriesPage(nav, storiesService, loadCtrl, alertCtrl, toastCtrl) {
             this.nav = nav;
             this.storiesService = storiesService;
             this.loadCtrl = loadCtrl;
             this.alertCtrl = alertCtrl;
+            this.toastCtrl = toastCtrl;
             this.stories = [];
         }
-        ShowStoriesPage.prototype.ionViewDidEnter = function () {
+        ShowStoriesPage.prototype.ionViewDidLoad = function () {
             var _this = this;
             var loading = this.loadCtrl.create({
                 content: 'Getting Stories...',
@@ -46806,15 +46827,20 @@ var __extends = (this && this.__extends) || function (d, b) {
                     .subscribe(function (data) {
                     _this.storyIDs = data;
                     _this.previousIndex = _this.storyIDs.length - 20;
+                    console.log(_this.previousIndex);
                     var _loop_4 = function(i_9) {
-                        var id = data[i_9];
-                        _this.storiesService.getStory(data[i_9])
-                            .subscribe(function (data) {
-                            _this.stories.push({ data: data, id: id });
+                        if (i_9 === 19) {
                             loading.dismiss();
-                            _this.storiesRetreived = _this.stories;
-                            sessionStorage.setItem('loaded', 'true');
-                        });
+                        }
+                        else {
+                            var id_3 = data[i_9];
+                            _this.storiesService.getStory(data[i_9])
+                                .subscribe(function (data) {
+                                _this.stories.push({ data: data, id: id_3 });
+                                _this.storiesRetreived = _this.stories;
+                                sessionStorage.setItem('loaded', 'true');
+                            });
+                        }
                     };
                     for (var i_9 = 0; i_9 < 20; i_9++) {
                         _loop_4(i_9);
@@ -46857,22 +46883,37 @@ var __extends = (this && this.__extends) || function (d, b) {
         };
         ShowStoriesPage.prototype.doInfinite = function (infiniteScroll) {
             var _this = this;
+            console.log(this.previousIndex);
             var newIndex = this.previousIndex - 20;
-            var _loop_6 = function(i_11) {
-                var id = this_2.storyIDs[i_11];
-                this_2.storiesService.getStory(this_2.storyIDs[i_11])
-                    .subscribe(function (data) {
-                    _this.stories.push({ data: data, id: id });
-                }, function (error) {
-                    console.log(error);
-                });
-            };
-            var this_2 = this;
-            for (var i_11 = this.previousIndex; i_11 > newIndex; i_11--) {
-                _loop_6(i_11);
+            if (newIndex > 0) {
+                var _loop_6 = function(i_11) {
+                    if (i_11 === newIndex + 1) {
+                        console.log(newIndex);
+                        infiniteScroll.complete();
+                        this_2.previousIndex = newIndex;
+                    }
+                    else {
+                        var id_4 = this_2.storyIDs[i_11];
+                        this_2.storiesService.getStory(this_2.storyIDs[i_11])
+                            .subscribe(function (data) {
+                            _this.stories.push({ data: data, id: id_4 });
+                        }, function (error) {
+                            console.log(error);
+                        });
+                    }
+                };
+                var this_2 = this;
+                for (var i_11 = this.previousIndex; i_11 > newIndex; i_11--) {
+                    _loop_6(i_11);
+                }
             }
-            infiniteScroll.complete();
-            this.previousIndex = newIndex;
+            else {
+                var toast = this.toastCtrl.create({
+                    message: 'No more stories to load',
+                    duration: 3000
+                });
+                toast.present();
+            }
         };
         ShowStoriesPage.prototype.share = function (url) {
             window.open("http://twitter.com/share?text=Check out this cool article I found on ionicHN!&url=" + url + "&hashtags=ionicHN");
@@ -46898,6 +46939,7 @@ var __extends = (this && this.__extends) || function (d, b) {
         { type: StoriesService, },
         { type: LoadingController, },
         { type: AlertController, },
+        { type: ToastController, },
     ];
     var AboutPage = (function () {
         function AboutPage(navController, storiesService, loadCtrl) {
@@ -46906,7 +46948,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             this.loadCtrl = loadCtrl;
             this.jobs = [];
         }
-        AboutPage.prototype.ionViewDidEnter = function () {
+        AboutPage.prototype.ionViewDidLoad = function () {
             var _this = this;
             var loading = this.loadCtrl.create({
                 content: 'Getting Jobs...'
@@ -46917,9 +46959,7 @@ var __extends = (this && this.__extends) || function (d, b) {
                     data.forEach(function (id) {
                         _this.storiesService.getStory(id)
                             .subscribe(function (data) {
-                            console.log(data);
                             _this.jobs.push(data);
-                            loading.dismiss();
                         }, function (err) {
                             console.log(err);
                         });
@@ -46927,6 +46967,9 @@ var __extends = (this && this.__extends) || function (d, b) {
                 }, function (err) {
                     console.log(err);
                 });
+                setTimeout(function () {
+                    loading.dismiss();
+                }, 2000);
             });
         };
         AboutPage.prototype.goTo = function (site) {
@@ -51851,7 +51894,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             this._el_0 = this.selectOrCreateHostElement('ng-component', rootSelector, null);
             this._appEl_0 = new AppElement(0, null, this, this._el_0);
             var compView_0 = viewFactory_ShowStoriesPage0(this.viewUtils, this.injector(0), this._appEl_0);
-            this._ShowStoriesPage_0_4 = new ShowStoriesPage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(AlertController));
+            this._ShowStoriesPage_0_4 = new ShowStoriesPage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(AlertController), this.parentInjector.get(ToastController));
             this._appEl_0.initComponent(this._ShowStoriesPage_0_4, [], compView_0);
             compView_0.create(this._ShowStoriesPage_0_4, this.projectableNodes, null);
             this.init([].concat([this._el_0]), [this._el_0], [], []);
@@ -52823,7 +52866,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             this._el_0 = this.selectOrCreateHostElement('ng-component', rootSelector, null);
             this._appEl_0 = new AppElement(0, null, this, this._el_0);
             var compView_0 = viewFactory_HomePage0(this.viewUtils, this.injector(0), this._appEl_0);
-            this._HomePage_0_4 = new HomePage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController));
+            this._HomePage_0_4 = new HomePage(this.parentInjector.get(NavController), this.parentInjector.get(StoriesService), this.parentInjector.get(LoadingController), this.parentInjector.get(ToastController));
             this._appEl_0.initComponent(this._HomePage_0_4, [], compView_0);
             compView_0.create(this._HomePage_0_4, this.projectableNodes, null);
             this.init([].concat([this._el_0]), [this._el_0], [], []);
@@ -53228,7 +53271,7 @@ var __extends = (this && this.__extends) || function (d, b) {
             this.renderer.setElementAttribute(this._el_23, 'name', 'share');
             this.renderer.setElementAttribute(this._el_23, 'role', 'img');
             this._Icon_23_3 = new Icon(this.parent.parentInjector.get(Config), new ElementRef(this._el_23), this.renderer);
-            this._text_24 = this.renderer.createText(null, '\n      ', null);
+            this._text_24 = this.renderer.createText(null, '\n        Share\n      ', null);
             compView_21.create(this._Button_21_4, [[].concat([
                     this._text_22,
                     this._el_23,
